@@ -91,7 +91,7 @@ public class ManageProductsPage extends JFrame {
         JButton deleteButton = createStyledButton("Delete Product");
         JButton backButton = createBackButton("Back");
 
-        addButton.addActionListener(e -> {new ProductForm(this, null, productDAO); dispose(); });
+        addButton.addActionListener(e -> {new ProductForm(this, null, productDAO); });
         editButton.addActionListener(e -> editSelectedProduct());
         deleteButton.addActionListener(e -> deleteSelectedProduct());
         backButton.addActionListener(e -> {new AdminDashboard(); dispose();});
