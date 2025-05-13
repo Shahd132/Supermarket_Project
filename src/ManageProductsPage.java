@@ -92,7 +92,7 @@ public class ManageProductsPage extends JFrame {
         JButton backButton = createBackButton("Back");
 
         addButton.addActionListener(e -> {new ProductForm(this, null, productDAO); dispose(); });
-        editButton.addActionListener(e -> {dispose();});
+        editButton.addActionListener(e -> editSelectedProduct());
         deleteButton.addActionListener(e -> deleteSelectedProduct());
         backButton.addActionListener(e -> {new AdminDashboard(); dispose();});
 
