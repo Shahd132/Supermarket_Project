@@ -60,6 +60,9 @@ public class AdminDashboard extends JFrame
         button.setBackground(new Color(34, 139, 34));
         button.setForeground(Color.WHITE);
         button.setFocusPainted(false);
+        button.setBorderPainted(false);
+        button.setContentAreaFilled(true);
+        button.setBorder(null);
         button.setPreferredSize(new Dimension(250, 40));
         button.addActionListener(listener);
         return button;
@@ -71,8 +74,8 @@ public class AdminDashboard extends JFrame
         button.setFont(new Font("Arial", Font.BOLD, 16));
         button.setBackground(Color.WHITE);
         button.setForeground(new Color(34, 139, 34));
-        button.setBorder(BorderFactory.createLineBorder(new Color(34, 139, 34), 2));
         button.setFocusPainted(false);
+        button.setBorder(null);
         button.setPreferredSize(new Dimension(250, 40));
         button.addActionListener(listener);
         return button;
@@ -80,7 +83,7 @@ public class AdminDashboard extends JFrame
 
     private void showMessage(String section) 
     {
-        JOptionPane.showMessageDialog(this, section + " Management Coming Soon!");
+        JOptionPane.showMessageDialog(this, section + " Soon isa");
     }
 
 }
