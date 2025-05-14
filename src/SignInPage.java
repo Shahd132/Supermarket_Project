@@ -130,13 +130,19 @@ public class SignInPage extends JFrame
                 JOptionPane.showMessageDialog(null, "login failed.");
                 return;
             }
-            else
-            {
-                //go to dashboard
-                new AdminDashboard();
-                dispose();
+            //go to dashboard
+            else{
+                if(authManager.determineRole(email, password)=="admin"){
+                        new AdminDashboard();
+                        dispose();
+                }                
+                else
+                {
+                    Customer customer = authManager.getCustomerByEmail(email);
+                    new CustomerDashboard(customer);
+                    dispose();
+                }
             }
-           
         });
 
         goToSignUpBtn.addActionListener(e -> {
