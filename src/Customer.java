@@ -58,6 +58,10 @@ public class Customer
     {
         this.Name=name;
     }
+     public void setPhone(String phone)
+    {
+        this.PhoneNo=phone;
+    }
     public void setEmail(String email)
     {
         this.Email=email;
