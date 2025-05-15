@@ -12,6 +12,7 @@ public class Customer
     public Customer() {}
     public Customer(String name, String email, String phoneNo, String address,String password) 
     {
+        this.CustomerId=0;
         this.Name = name;
         this.Email = email;
         this.PhoneNo = phoneNo;
@@ -78,5 +79,10 @@ public class Customer
     {
          this.DiscountVoucher=discount;
     }
+    public void setDate(String date)
+    {
+        this.RegistrationDate=date;
+    }
+    
 }
 
