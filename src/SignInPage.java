@@ -139,7 +139,7 @@ public class SignInPage extends JFrame
                 else
                 {
                     Customer customer = authManager.getCustomerByEmail(email);
-                    new CustomerDashboard(customer);
+                    new BranchSelector(customer);
                     dispose();
                 }
             }
