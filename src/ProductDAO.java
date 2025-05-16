@@ -133,6 +133,65 @@ public class ProductDAO
             stmt.executeUpdate();
         }
     }
+    public List<Product> getProductsByBranch(int branchId) throws SQLException {
+        List<Product> products = new ArrayList<>();
+        String sql = """
+            SELECT p.PRODUCTID, p.PNAME, c.CATEGNAME, p.PRICE, s.QUANTITY
+            FROM PRODUCT p
+            JOIN CATEGORY c ON p.CATEGORYID = c.CATEGORYID
+            JOIN STOCK s ON p.PRODUCTID = s.PRODUCTID
+            WHERE s.BRANCHID = ?
+        """;
+
+        try (Connection conn = connect(); PreparedStatement stmt = conn.prepareStatement(sql)) {
+            stmt.setInt(1, branchId);
+            ResultSet rs = stmt.executeQuery();
+
+            while (rs.next()) {
+                Product product = new Product(
+                    rs.getInt("PRODUCTID"),
+                    rs.getString("PNAME"),
+                    rs.getString("CATEGNAME"),
+                    rs.getDouble("PRICE"),
+                    rs.getInt("QUANTITY")
+                );
+                products.add(product);
+            }
+        }
+        return products;
+    }
+
+    public List<Product> searchProductsByBranch(String name, int branchId) throws SQLException {
+        List<Product> products = new ArrayList<>();
+        String sql = """
+            SELECT p.PRODUCTID, p.PNAME, p.PRICE, s.QUANTITY, c.CATEGNAME, c.CATEGORYID
+            FROM PRODUCT p
+            JOIN CATEGORY c ON p.CATEGORYID = c.CATEGORYID
+            JOIN STOCK s ON p.PRODUCTID = s.PRODUCTID
+            WHERE s.BRANCHID = ? AND p.PNAME LIKE ?
+        """;
+
+        try (Connection conn = connect();
+            PreparedStatement stmt = conn.prepareStatement(sql)) {
+            stmt.setInt(1, branchId);
+            stmt.setString(2, "%" + name + "%");
+
+            try (ResultSet rs = stmt.executeQuery()) {
+                while (rs.next()) {
+                    int id = rs.getInt("PRODUCTID");
+                    String pname = rs.getString("PNAME");
+                    double price = rs.getDouble("PRICE");
+                    int quantity = rs.getInt("QUANTITY");
+                    String categoryName = rs.getString("CATEGNAME");
+
+                    products.add(new Product(id, pname, categoryName, price, quantity));
+                }
+            }
+        }
+        return products;
+    }
+
+
 }
 
 
