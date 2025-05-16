@@ -1,4 +1,6 @@
 import javax.swing.*;
+import javax.swing.table.DefaultTableModel;
+import javax.swing.table.JTableHeader;
 import java.awt.*;
 import java.awt.event.*;
 import java.sql.*;
@@ -8,15 +10,22 @@ public class CustomerDashboard extends JFrame {
     private Customer customer;
     private JTable productTable;
     private ProductDAO productDAO;
+    private CustomerDAO customerDAO;
+    private int branchId;
+    private JTextField searchField;
+    private JButton searchButton;
+    private DefaultTableModel productTableModel;
 
-    public CustomerDashboard(Customer customer) {
+    public CustomerDashboard(Customer customer, int branchId) {
         this.customer = customer;
+        this.branchId = branchId;
         setTitle("Customer Dashboard");
         setSize(800, 600);
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         setLocationRelativeTo(null);
 
         productDAO = new ProductDAO();
+        customerDAO = new CustomerDAO();
 
         JPanel mainPanel = new JPanel(new BorderLayout());
         mainPanel.setBackground(new Color(245, 255, 245));
@@ -39,10 +48,12 @@ public class CustomerDashboard extends JFrame {
         editProfileBtn.addActionListener(e -> openProfileEditor());
         titlePanel.add(editProfileBtn, BorderLayout.EAST);
 
-        productTable = loadProductTable();
-        JScrollPane tableScrollPane = new JScrollPane(productTable);
-        tableScrollPane.setBorder(BorderFactory.createEmptyBorder(20, 40, 20, 40));
-        tableScrollPane.getViewport().setBackground(new Color(245, 255, 245));
+        JPanel centerPanel = new JPanel(new BorderLayout());
+        centerPanel.setBackground(new Color(245, 255, 245));
+        centerPanel.setBorder(BorderFactory.createEmptyBorder(20, 40, 20, 40));
+
+        addSearchPanel(centerPanel);
+        addProductTable(centerPanel);
 
         JPanel buttonPanel = new JPanel();
         buttonPanel.setBackground(new Color(245, 255, 245));
@@ -51,45 +62,123 @@ public class CustomerDashboard extends JFrame {
         JButton viewBtn = createDashboardButton("View Product", e -> onViewProduct());
         JButton orderBtn = createDashboardButton("Place Order", e -> onPlaceOrder());
 
+        JButton backBtn = new JButton("Back");
+        backBtn.setFont(new Font("Arial", Font.BOLD, 18));
+        backBtn.setForeground(new Color(0, 102, 0));
+        backBtn.setFocusPainted(false);
+        backBtn.setBorderPainted(false);
+        backBtn.setContentAreaFilled(false);  
+        backBtn.setOpaque(false);            
+        backBtn.setPreferredSize(new Dimension(200, 40));
+        backBtn.addActionListener(e -> {
+            this.dispose(); 
+            new BranchSelector(customer).setVisible(true); 
+        });
+
         buttonPanel.add(viewBtn);
         buttonPanel.add(orderBtn);
+        buttonPanel.add(backBtn); 
+
 
         mainPanel.add(titlePanel, BorderLayout.NORTH);
-        mainPanel.add(tableScrollPane, BorderLayout.CENTER);
+        mainPanel.add(centerPanel, BorderLayout.CENTER);
         mainPanel.add(buttonPanel, BorderLayout.SOUTH);
 
         add(mainPanel);
         setVisible(true);
+
+        loadProductsForBranch();
     }
 
-    private JTable loadProductTable() {
-        String[] columnNames = {"ID", "Name", "Category", "Price", "Quantity"};
-        Object[][] data = {};
+    private void addSearchPanel(JPanel parent) {
+        JPanel searchPanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 10, 10));
+        searchPanel.setBackground(new Color(245, 255, 245));
 
-        try {
-            List<Product> products = productDAO.getAllProducts();
-            data = new Object[products.size()][5];
-            for (int i = 0; i < products.size(); i++) {
-                Product p = products.get(i);
-                data[i][0] = p.getId();
-                data[i][1] = p.getName();
-                data[i][2] = p.getCategoryName();
-                data[i][3] = p.getPrice();
-                data[i][4] = p.getQuantity();
+        searchField = new JTextField("Search products...", 20);
+        searchField.setForeground(Color.GRAY);
+        searchField.setFont(new Font("Arial", Font.PLAIN, 16));
+        searchField.setBackground(Color.WHITE);
+        searchField.setBorder(BorderFactory.createLineBorder(new Color(0, 102, 0), 2));
+
+        searchField.addFocusListener(new FocusAdapter() {
+            public void focusGained(FocusEvent e) {
+                if (searchField.getText().equals("Search products...")) {
+                    searchField.setText("");
+                    searchField.setForeground(Color.BLACK);
+                }
             }
-        } catch (SQLException e) {
-            JOptionPane.showMessageDialog(this, "Failed to load products: " + e.getMessage());
-        }
+            public void focusLost(FocusEvent e) {
+                if (searchField.getText().isEmpty()) {
+                    searchField.setForeground(Color.GRAY);
+                    searchField.setText("Search products...");
+                }
+            }
+        });
 
-        JTable table = new JTable(data, columnNames) {
-            @Override
+        searchButton = new JButton("Search");
+        searchButton.setFont(new Font("Arial", Font.BOLD, 16));
+        searchButton.setBackground(new Color(0, 102, 0));
+        searchButton.setForeground(Color.WHITE);
+        searchButton.setFocusPainted(false);
+        searchButton.setBorder(BorderFactory.createEmptyBorder(8, 20, 8, 20));
+        searchButton.addActionListener(e -> searchProducts());
+
+        searchField.addActionListener(e -> searchProducts());
+
+        searchPanel.add(searchField);
+        searchPanel.add(searchButton);
+        parent.add(searchPanel, BorderLayout.NORTH);
+    }
+
+    private void addProductTable(JPanel parent) {
+        String[] columnNames = {"ID", "Name", "Category", "Price", "Quantity"};
+        productTableModel = new DefaultTableModel(columnNames, 0) {
             public boolean isCellEditable(int row, int column) {
                 return false;
             }
         };
-        table.setFont(new Font("Arial", Font.PLAIN, 14));
-        table.setRowHeight(25);
-        return table;
+        productTable = new JTable(productTableModel);
+        productTable.setFont(new Font("Arial", Font.PLAIN, 14));
+        productTable.setRowHeight(25);
+        productTable.setBackground(new Color(245, 255, 245));
+
+        JTableHeader header = productTable.getTableHeader();
+        header.setBackground(new Color(0, 102, 0));
+        header.setForeground(Color.WHITE);
+        header.setFont(new Font("Arial", Font.BOLD, 16));
+
+        JScrollPane scrollPane = new JScrollPane(productTable);
+        scrollPane.getViewport().setBackground(new Color(245, 255, 245));
+        parent.add(scrollPane, BorderLayout.CENTER);
+    }
+
+    private void searchProducts() {
+        String query = searchField.getText().trim();
+        if (query.equals("Search products...")) query = "";
+        try {
+            List<Product> products = productDAO.searchProductsByBranch(query, branchId);
+            refreshProductTable(products);
+        } catch (SQLException e) {
+            JOptionPane.showMessageDialog(this, "Search failed: " + e.getMessage());
+        }
+    }
+
+    private void loadProductsForBranch() {
+        try {
+            List<Product> products = productDAO.getProductsByBranch(branchId);
+            refreshProductTable(products);
+        } catch (SQLException e) {
+            JOptionPane.showMessageDialog(this, "Failed to load branch products: " + e.getMessage());
+        }
+    }
+
+    private void refreshProductTable(List<Product> products) {
+        productTableModel.setRowCount(0);
+        for (Product p : products) {
+            productTableModel.addRow(new Object[]{
+                    p.getId(), p.getName(), p.getCategoryName(), p.getPrice(), p.getQuantity()
+            });
+        }
     }
 
     private JButton createDashboardButton(String text, ActionListener listener) {
@@ -106,11 +195,34 @@ public class CustomerDashboard extends JFrame {
         return button;
     }
 
+    private void onViewProduct() {
+        int selectedRow = productTable.getSelectedRow();
+        if (selectedRow == -1) {
+            JOptionPane.showMessageDialog(this, "Please select a product to view.");
+            return;
+        }
+
+        int productId = (int) productTable.getValueAt(selectedRow, 0);
+        incrementView(productId, customer.getId());
+
+        String name = (String) productTable.getValueAt(selectedRow, 1);
+        String category = (String) productTable.getValueAt(selectedRow, 2);
+        double price = (double) productTable.getValueAt(selectedRow, 3);
+        int quantity = (int) productTable.getValueAt(selectedRow, 4);
+
+        JOptionPane.showMessageDialog(this, String.format("""
+                Product Details:
+                Name: %s
+                Category: %s
+                Price: %.2f
+                Quantity: %d
+            """, name, category, price, quantity));
+    }
+
     private void incrementView(int productId, int customerId) {
         try (Connection conn = DriverManager.getConnection(
                 "jdbc:sqlserver://localhost:1433;databaseName=Supermarket;integratedSecurity=true;encrypt=true;trustServerCertificate=true")) {
-
-            String checkSql = "SELECT TIMES_VIEWED FROM VIEWS WHERE PRODUCTID = ? AND CUSTOMER_ID = ?";
+            String checkSql = "SELECT TIMES_VIEWED FROM VIEWS WHERE PRODUCTID = ? AND CID = ?";
             try (PreparedStatement checkStmt = conn.prepareStatement(checkSql)) {
                 checkStmt.setInt(1, productId);
                 checkStmt.setInt(2, customerId);
@@ -118,7 +230,7 @@ public class CustomerDashboard extends JFrame {
 
                 if (rs.next()) {
                     int timesViewed = rs.getInt("TIMES_VIEWED") + 1;
-                    String updateSql = "UPDATE VIEWS SET TIMES_VIEWED = ? WHERE PRODUCTID = ? AND CUSTOMER_ID = ?";
+                    String updateSql = "UPDATE VIEWS SET TIMES_VIEWED = ? WHERE PRODUCTID = ? AND CID = ?";
                     try (PreparedStatement updateStmt = conn.prepareStatement(updateSql)) {
                         updateStmt.setInt(1, timesViewed);
                         updateStmt.setInt(2, productId);
@@ -126,7 +238,7 @@ public class CustomerDashboard extends JFrame {
                         updateStmt.executeUpdate();
                     }
                 } else {
-                    String insertSql = "INSERT INTO VIEWS (PRODUCTID, CUSTOMER_ID, TIMES_VIEWED) VALUES (?, ?, 1)";
+                    String insertSql = "INSERT INTO VIEWS (PRODUCTID, CID, TIMES_VIEWED) VALUES (?, ?, 1)";
                     try (PreparedStatement insertStmt = conn.prepareStatement(insertSql)) {
                         insertStmt.setInt(1, productId);
                         insertStmt.setInt(2, customerId);
@@ -137,31 +249,6 @@ public class CustomerDashboard extends JFrame {
         } catch (SQLException e) {
             JOptionPane.showMessageDialog(this, "Error recording view: " + e.getMessage());
         }
-    }
-
-    private void onViewProduct() {
-        int selectedRow = productTable.getSelectedRow();
-        if (selectedRow == -1) {
-            JOptionPane.showMessageDialog(this, "Please select a product to view.");
-            return;
-        }
-
-        int productId = (int) productTable.getValueAt(selectedRow, 0);
-        int customerId = customer.getId();
-        incrementView(productId, customerId);
-
-        String name = (String) productTable.getValueAt(selectedRow, 1);
-        String category = (String) productTable.getValueAt(selectedRow, 2);
-        double price = (double) productTable.getValueAt(selectedRow, 3);
-        int quantity = (int) productTable.getValueAt(selectedRow, 4);
-
-        JOptionPane.showMessageDialog(this, String.format("""
-            Product Details:
-            Name: %s
-            Category: %s
-            Price: %.2f
-            Quantity: %d
-        """, name, category, price, quantity));
     }
 
     private void onPlaceOrder() {
@@ -219,43 +306,24 @@ public class CustomerDashboard extends JFrame {
             customer.setPhone(phoneField.getText());
             customer.setAddress(addressField.getText());
 
-            String sqlUpdate = "UPDATE Customers SET Name = ?, Email = ?, Phone = ?, Address = ? WHERE CustomerID = ?";
-            try (Connection conn = DriverManager.getConnection(
-                    "jdbc:sqlserver://localhost:1433;databaseName=Supermarket;integratedSecurity=true;encrypt=true;trustServerCertificate=true")) {
-
-                try (PreparedStatement stmt = conn.prepareStatement(sqlUpdate)) {
-                    stmt.setString(1, customer.getName());
-                    stmt.setString(2, customer.getEmail());
-                    stmt.setString(3, customer.getPhoneNo());
-                    stmt.setString(4, customer.getAddress());
-                    stmt.setInt(5, customer.getId());
-                    int rowsUpdated = stmt.executeUpdate();
-                    JOptionPane.showMessageDialog(dialog, rowsUpdated > 0 ? "Profile updated successfully!" : "Failed to update profile.");
-                }
+            try {
+                customerDAO.updateCustomerProfile(customer);
+                JOptionPane.showMessageDialog(dialog, "Profile updated successfully!");
+                dialog.dispose();
             } catch (SQLException ex) {
                 JOptionPane.showMessageDialog(dialog, "Error updating profile: " + ex.getMessage());
             }
-            dialog.dispose();
         });
 
         deleteButton.addActionListener(e -> {
             int confirm = JOptionPane.showConfirmDialog(dialog, "Are you sure you want to delete your profile?", "Confirm Delete", JOptionPane.YES_NO_OPTION);
             if (confirm == JOptionPane.YES_OPTION) {
-                String sqlDelete = "DELETE FROM Customers WHERE CustomerID = ?";
-                try (Connection conn = DriverManager.getConnection(
-                        "jdbc:sqlserver://localhost:1433;databaseName=Supermarket;integratedSecurity=true;encrypt=true;trustServerCertificate=true")) {
-
-                    try (PreparedStatement stmt = conn.prepareStatement(sqlDelete)) {
-                        stmt.setInt(1, customer.getId());
-                        int rowsDeleted = stmt.executeUpdate();
-                        if (rowsDeleted > 0) {
-                            JOptionPane.showMessageDialog(dialog, "Profile deleted successfully!");
-                            dialog.dispose();
-                            dispose();
-                        } else {
-                            JOptionPane.showMessageDialog(dialog, "Failed to delete profile.");
-                        }
-                    }
+                try {
+                    customerDAO.deleteCustomer(customer.getId());
+                    JOptionPane.showMessageDialog(dialog, "Profile deleted successfully!");
+                    dialog.dispose();
+                    this.dispose(); // Close dashboard
+                    new SignInPage().setVisible(true);
                 } catch (SQLException ex) {
                     JOptionPane.showMessageDialog(dialog, "Error deleting profile: " + ex.getMessage());
                 }
