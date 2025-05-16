@@ -148,7 +148,7 @@ public class SignUpPage extends JFrame
             }
             else
             {
-                new CustomerDashboard(customer);
+                new SignInPage();
                 dispose();
             }
 
