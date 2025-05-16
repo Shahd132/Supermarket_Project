@@ -24,7 +24,7 @@ public class CustomerDAO {
                 customer.setName(rs.getString("CNAME"));
                 customer.setEmail(rs.getString("CEMAIL"));
                 customer.setPassword(rs.getString("CPASSWORD"));
-                customer.setphone(rs.getString("PHONENO"));
+                customer.setPhone(rs.getString("PHONENO"));
                 customer.setAddress(rs.getString("CADDRESS"));
                 customer.setDate(rs.getString("REGISTRATIONDATE"));
                 customer.setDiscountVoucher(rs.getString("DISCOUNTVOUCHER"));
@@ -104,6 +104,22 @@ public class CustomerDAO {
              PreparedStatement stmt = conn.prepareStatement(sql)) {
 
             stmt.setInt(1, customerId);
+            stmt.executeUpdate();
+        }
+    }
+
+    public void updateCustomerProfile(Customer customer) throws SQLException {
+        String sql = "UPDATE CUSTOMER SET CNAME = ?, CEMAIL = ?, PHONENO = ?, CADDRESS = ? WHERE CID = ?";
+
+        try (Connection conn = connect();
+            PreparedStatement stmt = conn.prepareStatement(sql)) {
+
+            stmt.setString(1, customer.getName());
+            stmt.setString(2, customer.getEmail());
+            stmt.setString(3, customer.getPhoneNo());
+            stmt.setString(4, customer.getAddress());
+            stmt.setInt(5, customer.getId());
+
             stmt.executeUpdate();
         }
     }
