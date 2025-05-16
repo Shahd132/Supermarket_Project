@@ -113,6 +113,32 @@ public class StockDAO {
             }
         }
     }
+    public List<Map<String, Object>> getProductsInBranch(int branchId) throws SQLException {
+        List<Map<String, Object>> products = new ArrayList<>();
+
+        String sql = "SELECT p.PRODUCTID, p.PNAME, p.DESCRIPTION, s.QUANTITY " +
+                    "FROM PRODUCT p " +
+                    "JOIN STOCK s ON p.PRODUCTID = s.PRODUCTID " +
+                    "WHERE s.BRANCHID = ?";
+
+        try (Connection conn = connect();
+            PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setInt(1, branchId);
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    Map<String, Object> row = new HashMap<>();
+                    row.put("PRODUCTID", rs.getInt("PRODUCTID"));
+                    row.put("PNAME", rs.getString("PNAME"));
+                    row.put("DESCRIPTION", rs.getString("DESCRIPTION"));
+                    row.put("QUANTITY", rs.getInt("QUANTITY"));
+                    products.add(row);
+                }
+            }
+        }
+
+        return products;
+    }
+
 }
 
 
