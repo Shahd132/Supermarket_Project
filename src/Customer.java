@@ -83,6 +83,10 @@ public class Customer
     {
         this.RegistrationDate=date;
     }
+
+    public void setId(int id) {
+        this.CustomerId = id;
+    }
     
 }
 
