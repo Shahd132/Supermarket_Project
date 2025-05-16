@@ -35,11 +35,16 @@ public class AdminDashboard extends JFrame
         gbc.gridy = 0;
         panel.add(createDashboardButton("Manage Products", e -> {dispose(); new ManageProductsPage();}), gbc);
         gbc.gridy++;
-        panel.add(createDashboardButton("Manage Categories", e -> showMessage("Categories")), gbc);
+        panel.add(createDashboardButton("Manage Categories", e -> {dispose(); new ManageCategoriesPage();}), gbc);
         gbc.gridy++;
-        panel.add(createDashboardButton("Manage Customers", e -> showMessage("Customers")), gbc);
+        panel.add(createDashboardButton("Manage Customers", e -> {dispose(); new ManageCustomersPage();}), gbc);
         gbc.gridy++;
-        panel.add(createDashboardButton("Manage Branches", e -> showMessage("Branches")), gbc);
+        panel.add(createDashboardButton("Manage Branches", e -> {dispose(); new ManageBranchesPage();}), gbc);
+        gbc.gridy++;
+        panel.add(createDashboardButton("Manage Stocks", e -> {dispose(); new ManageStocksPage();}), gbc);
+         gbc.gridy++;
+        panel.add(createDashboardButton("Products Need Stocking", e -> {dispose(); new LowStockPage();}), gbc);
+       
         gbc.gridy++;
         panel.add(createBackButton("Logout", e -> {
             dispose();
@@ -79,11 +84,6 @@ public class AdminDashboard extends JFrame
         button.setPreferredSize(new Dimension(250, 40));
         button.addActionListener(listener);
         return button;
-    }
-
-    private void showMessage(String section) 
-    {
-        JOptionPane.showMessageDialog(this, section + " Soon isa");
     }
 
 }
