@@ -60,14 +60,17 @@ public class ReportApp extends JFrame {
         btnProductCustomerStats.addActionListener(e -> showProductCustomerStats());
         gbc.gridy = 5;
         panel.add(btnProductCustomerStats, gbc);
+        JButton btnFrequentCustomers = createStyledButton("Frequent Customers");
+        btnFrequentCustomers.addActionListener(e -> showFrequentCustomers());
+        gbc.gridy = 6;
+        panel.add(btnFrequentCustomers, gbc);
 
-        // زر العودة إلى لوحة تحكم المدير
         JButton btnBackToDashboard = createStyledButton("Back to Admin Dashboard");
         btnBackToDashboard.addActionListener(e -> {
-            dispose(); // يغلق نافذة التقرير
-            new AdminDashboard().setVisible(true); // يفتح لوحة تحكم المدير
+            dispose();
+            new AdminDashboard().setVisible(true);
         });
-        gbc.gridy = 6;
+        gbc.gridy = 7;
         panel.add(btnBackToDashboard, gbc);
 
         add(panel, BorderLayout.CENTER);
@@ -153,8 +156,8 @@ public class ReportApp extends JFrame {
     private void executeReportQuery(String query, String reportTitle) {
         try (Connection conn = DriverManager.getConnection(
                 "jdbc:sqlserver://localhost:1433;instanceName=MSSQLSERVER1;databaseName=Supermarket;integratedSecurity=true;encrypt=true;trustServerCertificate=true;");
-             Statement stmt = conn.createStatement();
-             ResultSet rs = stmt.executeQuery(query)) {
+                Statement stmt = conn.createStatement();
+                ResultSet rs = stmt.executeQuery(query)) {
 
             createReportWindow(reportTitle, rs);
 
@@ -166,20 +169,22 @@ public class ReportApp extends JFrame {
     private void showErrorDialog(String message) {
         JOptionPane.showMessageDialog(this, "Database Error:\n" + message, "Error", JOptionPane.ERROR_MESSAGE);
     }
-//a
+
+    // a
     private void showMostBoughtProduct() {
         String query = "SELECT TOP 1 " +
-               "p.PNAME AS [Product Name], " +
-               "COUNT(DISTINCT o.CID) AS [Number of Customers] " +
-               "FROM ORDERITEM oi " +
-               "JOIN PRODUCT p ON oi.PRODUCTID = p.PRODUCTID " +
-               "JOIN [ORDER] o ON oi.ORDERID = o.ORDERID " +
-               "GROUP BY p.PNAME " +
-               "ORDER BY [Number of Customers] DESC";
+                "p.PNAME AS [Product Name], " +
+                "COUNT(DISTINCT o.CID) AS [Number of Customers] " +
+                "FROM ORDERITEM oi " +
+                "JOIN PRODUCT p ON oi.PRODUCTID = p.PRODUCTID " +
+                "JOIN [ORDER] o ON oi.ORDERID = o.ORDERID " +
+                "GROUP BY p.PNAME " +
+                "ORDER BY [Number of Customers] DESC";
 
         executeReportQuery(query, "Most Bought Product (By Customers)");
     }
-//b
+
+    // b
     private void showProductNoCustomers() {
         String monthInput = JOptionPane.showInputDialog(this, "Enter Month (1-12):");
         String yearInput = JOptionPane.showInputDialog(this, "Enter Year (e.g., 2025):");
@@ -194,8 +199,8 @@ public class ReportApp extends JFrame {
             }
 
             String query = "SELECT p.PNAME AS [Unbought Product Name] FROM PRODUCT p WHERE p.PRODUCTID NOT IN ( " +
-               "SELECT DISTINCT oi.PRODUCTID FROM ORDERITEM oi JOIN [ORDER] o ON oi.ORDERID = o.ORDERID " +
-               "WHERE YEAR(o.ORDERDATE) = " + year + " AND MONTH(o.ORDERDATE) = " + month + ")";
+                    "SELECT DISTINCT oi.PRODUCTID FROM ORDERITEM oi JOIN [ORDER] o ON oi.ORDERID = o.ORDERID " +
+                    "WHERE YEAR(o.ORDERDATE) = " + year + " AND MONTH(o.ORDERDATE) = " + month + ")";
 
             executeReportQuery(query, "Products Not Bought in " + year + "/" + month);
 
@@ -203,188 +208,60 @@ public class ReportApp extends JFrame {
             showErrorDialog("Invalid input. Please enter valid numbers.");
         }
     }
-//c
-   private void showInactiveCustomers() {
-    String query = "SELECT c.CName AS [Inactive Customer Names] FROM CUSTOMER c WHERE c.CID NOT IN ( " +
-                   "SELECT DISTINCT o.CID FROM [ORDER] o WHERE o.ORDERDATE >= DATEADD(YEAR, -1, GETDATE()))";
-    executeReportQuery(query, "Customers Inactive for 1 Year");
-}
 
-//d
-   private void showTopCustomerThisMonth() {
-    String query = "SELECT TOP 1 c.CName AS [Customer Name], " +
-                   "SUM(oi.Quantity_Ordered * p.PRICE) AS [Total Purchase (EGP)] " +
-                   "FROM CUSTOMER c " +
-                   "JOIN [ORDER] o ON c.CID = o.CID " +
-                   "JOIN ORDERITEM oi ON o.ORDERID = oi.ORDERID " +
-                   "JOIN PRODUCT p ON oi.PRODUCTID = p.PRODUCTID " +
-                   "WHERE MONTH(o.ORDERDATE) = MONTH(GETDATE()) AND YEAR(o.ORDERDATE) = YEAR(GETDATE()) " +
-                   "GROUP BY c.CName " +
-                   "ORDER BY [Total Purchase (EGP)] DESC";
-    executeReportQuery(query, "Top Customer This Month");
-}
-
-//e
-   private void compareCategorySales() {
-    String query = "SELECT c.CATEGNAME AS [Category Name], " +
-                   "SUM(oi.Quantity_Ordered * p.PRICE) AS [Total Sales (EGP)] " +
-                   "FROM PRODUCT p " +
-                   "JOIN ORDERITEM oi ON p.PRODUCTID = oi.PRODUCTID " +
-                   "JOIN CATEGORY c ON p.CATEGORYID = c.CATEGORYID " +
-                   "GROUP BY c.CATEGNAME";
-    executeReportQuery(query, "Sales by Product Category (Electronics vs Food)");
-}
-
-private void showFrequentCustomers() {
-  String query = "SELECT " +
-               "c.CID AS [Customer ID], " +
-               "c.CName AS [Customer Name], " +
-               "COUNT(o.ORDERID) AS [Number of Orders], " +
-               "ISNULL(c.[DiscountVoucher], 0) AS [Discount Voucher (EGP)] " +
-               "FROM CUSTOMER c " +
-               "JOIN [ORDER] o ON c.CID = o.CID " +
-               "GROUP BY c.CID, c.CName, c.[DiscountVoucher] " +
-               "HAVING COUNT(o.ORDERID) >= 3 " +
-               "ORDER BY [Number of Orders] DESC";
-
-    try (Connection conn = DriverManager.getConnection(
-            "jdbc:sqlserver://localhost:1433;instanceName=MSSQLSERVER1;databaseName=Supermarket;integratedSecurity=true;encrypt=true;trustServerCertificate=true;");
-         Statement stmt = conn.createStatement();
-         ResultSet rs = stmt.executeQuery(query)) {
-
-        JFrame frame = new JFrame("Frequent Customers (3+ Orders)");
-        frame.setSize(800, 700);
-        frame.setLocationRelativeTo(null);
-        frame.setLayout(new BorderLayout());
-
-        ResultSetMetaData meta = rs.getMetaData();
-        int columnCount = meta.getColumnCount();
-        String[] columnNames = new String[columnCount];
-        for (int i = 1; i <= columnCount; i++) {
-            columnNames[i - 1] = meta.getColumnLabel(i);
-        }
-
-        java.util.List<Object[]> data = new java.util.ArrayList<>();
-        while (rs.next()) {
-            Object[] row = new Object[columnCount];
-            for (int i = 1; i <= columnCount; i++) {
-                row[i - 1] = rs.getObject(i);
-            }
-            data.add(row);
-        }
-
-        Object[][] rowData = new Object[data.size()][columnCount];
-        for (int i = 0; i < data.size(); i++) {
-            rowData[i] = data.get(i);
-        }
-
-        JTable table = new JTable(rowData, columnNames) {
-            public boolean isCellEditable(int row, int column) {
-                return false;
-            }
-        };
-
-        table.setFont(new Font("Arial", Font.PLAIN, 16));
-        table.setRowHeight(50);
-        DefaultTableCellRenderer centerRenderer = new DefaultTableCellRenderer();
-        centerRenderer.setHorizontalAlignment(SwingConstants.CENTER);
-        for (int i = 0; i < columnCount; i++) {
-            table.getColumnModel().getColumn(i).setCellRenderer(centerRenderer);
-        }
-
-        JTableHeader header = table.getTableHeader();
-        header.setBackground(new Color(0, 102, 0));
-        header.setForeground(Color.WHITE);
-        header.setFont(new Font("Arial", Font.BOLD, 18));
-
-        JScrollPane scrollPane = new JScrollPane(table);
-        frame.add(scrollPane, BorderLayout.CENTER);
-
-        JPanel bottomPanel = new JPanel();
-        bottomPanel.setBackground(new Color(245, 255, 250));
-
-        JButton discountButton = new JButton("Set Discount Voucher");
-        discountButton.setPreferredSize(new Dimension(200, 40));
-        discountButton.setBackground(new Color(0, 102, 0));
-        discountButton.setForeground(Color.WHITE);
-        discountButton.setFont(new Font("Arial", Font.BOLD, 16));
-        discountButton.setFocusPainted(false);
-
-        discountButton.addActionListener(e -> {
-            int selectedRow = table.getSelectedRow();
-            if (selectedRow == -1) {
-                JOptionPane.showMessageDialog(frame, "Please select a customer row first.");
-                return;
-            }
-
-            String cid = table.getValueAt(selectedRow, 0).toString();
-            String cname = table.getValueAt(selectedRow, 1).toString();
-            String discount = JOptionPane.showInputDialog(frame, "Enter discount for " + cname + ":");
-
-            if (discount != null && !discount.isEmpty()) {
-                try (Connection updateConn = DriverManager.getConnection(
-                        "jdbc:sqlserver://localhost:1433;instanceName=MSSQLSERVER1;databaseName=Supermarket;integratedSecurity=true;encrypt=true;trustServerCertificate=true;");
-                     PreparedStatement updateStmt = updateConn.prepareStatement(
-                             "UPDATE CUSTOMER SET [DiscountVoucher] = ? WHERE CID = ?")) {
-
-                    updateStmt.setBigDecimal(1, new java.math.BigDecimal(discount));
-                    updateStmt.setInt(2, Integer.parseInt(cid));
-
-                    int rows = updateStmt.executeUpdate();
-                    if (rows > 0) {
-                        JOptionPane.showMessageDialog(frame, "Discount updated for " + cname);
-                        table.setValueAt(discount, selectedRow, 3); 
-                    } else {
-                        JOptionPane.showMessageDialog(frame, "Failed to update discount.");
-                    }
-
-                } catch (Exception ex) {
-                    showErrorDialog(ex.getMessage());
-                }
-            }
-        });
-
-        JButton backButton = new JButton("Back");
-        backButton.setPreferredSize(new Dimension(100, 40));
-        backButton.setBackground(new Color(0, 102, 0));
-        backButton.setForeground(Color.WHITE);
-        backButton.setFont(new Font("Arial", Font.BOLD, 16));
-        backButton.setFocusPainted(false);
-        backButton.addActionListener(e -> frame.dispose());
-
-        bottomPanel.add(discountButton);
-        bottomPanel.add(backButton);
-
-        frame.add(bottomPanel, BorderLayout.SOUTH);
-        frame.setVisible(true);
-
-    } catch (SQLException e) {
-        showErrorDialog(e.getMessage());
+    // c
+    private void showInactiveCustomers() {
+        String query = "SELECT c.CName AS [Inactive Customer Names] FROM CUSTOMER c WHERE c.CID NOT IN ( " +
+                "SELECT DISTINCT o.CID FROM [ORDER] o WHERE o.ORDERDATE >= DATEADD(YEAR, -1, GETDATE()))";
+        executeReportQuery(query, "Customers Inactive for 1 Year");
     }
-}
-//f
-    private void showProductCustomerStats() {
-    String query = "SELECT " +
-               "p.PRODUCTID AS [Product ID], " +
-               "p.PNAME AS [Product Name], " +
-               "p.PRICE AS [Price (EGP)], " +
-               "c.Categname AS [Category Name], " +
-               "COUNT(DISTINCT o.CID) AS [Number of Unique Customers] " +
-               "FROM PRODUCT p " +
-               "LEFT JOIN CATEGORY c ON p.CategoryId = c.CategoryId " +
-               "LEFT JOIN ORDERITEM oi ON p.PRODUCTID = oi.PRODUCTID " +
-               "LEFT JOIN [ORDER] o ON oi.ORDERID = o.ORDERID " +
-               "GROUP BY p.PRODUCTID, p.PNAME, p.PRICE, c.Categname";
+
+    // d
+    private void showTopCustomerThisMonth() {
+        String query = "SELECT TOP 1 c.CName AS [Customer Name], " +
+                "SUM(oi.Quantity_Ordered * p.PRICE) AS [Total Purchase (EGP)] " +
+                "FROM CUSTOMER c " +
+                "JOIN [ORDER] o ON c.CID = o.CID " +
+                "JOIN ORDERITEM oi ON o.ORDERID = oi.ORDERID " +
+                "JOIN PRODUCT p ON oi.PRODUCTID = p.PRODUCTID " +
+                "WHERE MONTH(o.ORDERDATE) = MONTH(GETDATE()) AND YEAR(o.ORDERDATE) = YEAR(GETDATE()) " +
+                "GROUP BY c.CName " +
+                "ORDER BY [Total Purchase (EGP)] DESC";
+        executeReportQuery(query, "Top Customer This Month");
+    }
+
+    // e
+    private void compareCategorySales() {
+        String query = "SELECT c.CATEGNAME AS [Category Name], " +
+                "SUM(oi.Quantity_Ordered * p.PRICE) AS [Total Sales (EGP)] " +
+                "FROM PRODUCT p " +
+                "JOIN ORDERITEM oi ON p.PRODUCTID = oi.PRODUCTID " +
+                "JOIN CATEGORY c ON p.CATEGORYID = c.CATEGORYID " +
+                "GROUP BY c.CATEGNAME";
+        executeReportQuery(query, "Sales by Product Category (Electronics vs Food)");
+    }
+
+    private void showFrequentCustomers() {
+        String query = "SELECT " +
+                "c.CID AS [Customer ID], " +
+                "c.CName AS [Customer Name], " +
+                "COUNT(o.ORDERID) AS [Number of Orders], " +
+                "ISNULL(c.[DiscountVoucher], 0) AS [Discount Voucher (EGP)] " +
+                "FROM CUSTOMER c " +
+                "JOIN [ORDER] o ON c.CID = o.CID " +
+                "GROUP BY c.CID, c.CName, c.[DiscountVoucher] " +
+                "HAVING COUNT(o.ORDERID) >= 3 " +
+                "ORDER BY [Number of Orders] DESC";
 
         try (Connection conn = DriverManager.getConnection(
                 "jdbc:sqlserver://localhost:1433;instanceName=MSSQLSERVER1;databaseName=Supermarket;integratedSecurity=true;encrypt=true;trustServerCertificate=true;");
-             Statement stmt = conn.createStatement();
-             ResultSet rs = stmt.executeQuery(query)) {
+                Statement stmt = conn.createStatement();
+                ResultSet rs = stmt.executeQuery(query)) {
 
-            JFrame reportFrame = new JFrame("Product Info and Customer Count");
-            reportFrame.setSize(900, 700);
-            reportFrame.setLocationRelativeTo(null);
-            reportFrame.setLayout(new BorderLayout());
+            JFrame frame = new JFrame("Frequent Customers (3+ Orders)");
+            frame.setSize(800, 700);
+            frame.setLocationRelativeTo(null);
+            frame.setLayout(new BorderLayout());
 
             ResultSetMetaData meta = rs.getMetaData();
             int columnCount = meta.getColumnCount();
@@ -414,7 +291,7 @@ private void showFrequentCustomers() {
             };
 
             table.setFont(new Font("Arial", Font.PLAIN, 16));
-            table.setRowHeight(60);
+            table.setRowHeight(50);
             DefaultTableCellRenderer centerRenderer = new DefaultTableCellRenderer();
             centerRenderer.setHorizontalAlignment(SwingConstants.CENTER);
             for (int i = 0; i < columnCount; i++) {
@@ -427,10 +304,51 @@ private void showFrequentCustomers() {
             header.setFont(new Font("Arial", Font.BOLD, 18));
 
             JScrollPane scrollPane = new JScrollPane(table);
-            reportFrame.add(scrollPane, BorderLayout.CENTER);
+            frame.add(scrollPane, BorderLayout.CENTER);
 
             JPanel bottomPanel = new JPanel();
             bottomPanel.setBackground(new Color(245, 255, 250));
+
+            JButton discountButton = new JButton("Set Discount Voucher");
+            discountButton.setPreferredSize(new Dimension(200, 40));
+            discountButton.setBackground(new Color(0, 102, 0));
+            discountButton.setForeground(Color.WHITE);
+            discountButton.setFont(new Font("Arial", Font.BOLD, 16));
+            discountButton.setFocusPainted(false);
+
+            discountButton.addActionListener(e -> {
+                int selectedRow = table.getSelectedRow();
+                if (selectedRow == -1) {
+                    JOptionPane.showMessageDialog(frame, "Please select a customer row first.");
+                    return;
+                }
+
+                String cid = table.getValueAt(selectedRow, 0).toString();
+                String cname = table.getValueAt(selectedRow, 1).toString();
+                String discount = JOptionPane.showInputDialog(frame, "Enter discount for " + cname + ":");
+
+                if (discount != null && !discount.isEmpty()) {
+                    try (Connection updateConn = DriverManager.getConnection(
+                            "jdbc:sqlserver://localhost:1433;instanceName=MSSQLSERVER1;databaseName=Supermarket;integratedSecurity=true;encrypt=true;trustServerCertificate=true;");
+                            PreparedStatement updateStmt = updateConn.prepareStatement(
+                                    "UPDATE CUSTOMER SET [DiscountVoucher] = ? WHERE CID = ?")) {
+
+                        updateStmt.setBigDecimal(1, new java.math.BigDecimal(discount));
+                        updateStmt.setInt(2, Integer.parseInt(cid));
+
+                        int rows = updateStmt.executeUpdate();
+                        if (rows > 0) {
+                            JOptionPane.showMessageDialog(frame, "Discount updated for " + cname);
+                            table.setValueAt(discount, selectedRow, 3);
+                        } else {
+                            JOptionPane.showMessageDialog(frame, "Failed to update discount.");
+                        }
+
+                    } catch (Exception ex) {
+                        showErrorDialog(ex.getMessage());
+                    }
+                }
+            });
 
             JButton backButton = new JButton("Back");
             backButton.setPreferredSize(new Dimension(100, 40));
@@ -438,24 +356,34 @@ private void showFrequentCustomers() {
             backButton.setForeground(Color.WHITE);
             backButton.setFont(new Font("Arial", Font.BOLD, 16));
             backButton.setFocusPainted(false);
-            backButton.addActionListener(e -> reportFrame.dispose());
+            backButton.addActionListener(e -> frame.dispose());
 
-            JButton frequentButton = new JButton("Frequent Customers");
-            frequentButton.setPreferredSize(new Dimension(200, 40));
-            frequentButton.setBackground(new Color(0, 102, 0));
-            frequentButton.setForeground(Color.WHITE);
-            frequentButton.setFont(new Font("Arial", Font.BOLD, 16));
-            frequentButton.setFocusPainted(false);
-            frequentButton.addActionListener(e -> showFrequentCustomers());
-
-            bottomPanel.add(frequentButton);
+            bottomPanel.add(discountButton);
             bottomPanel.add(backButton);
-            reportFrame.add(bottomPanel, BorderLayout.SOUTH);
-            reportFrame.setVisible(true);
+
+            frame.add(bottomPanel, BorderLayout.SOUTH);
+            frame.setVisible(true);
 
         } catch (SQLException e) {
             showErrorDialog(e.getMessage());
         }
+    }
+
+    // f
+    private void showProductCustomerStats() {
+        String query = "SELECT " +
+                "p.PRODUCTID AS [Product ID], " +
+                "p.PNAME AS [Product Name], " +
+                "p.PRICE AS [Price (EGP)], " +
+                "c.Categname AS [Category Name], " +
+                "COUNT(DISTINCT o.CID) AS [Number of Unique Customers] " +
+                "FROM PRODUCT p " +
+                "LEFT JOIN CATEGORY c ON p.CategoryId = c.CategoryId " +
+                "LEFT JOIN ORDERITEM oi ON p.PRODUCTID = oi.PRODUCTID " +
+                "LEFT JOIN [ORDER] o ON oi.ORDERID = o.ORDERID " +
+                "GROUP BY p.PRODUCTID, p.PNAME, p.PRICE, c.Categname";
+        executeReportQuery(query, "Product Customer Statistics");
+
     }
 
     public static void main(String[] args) {
@@ -469,4 +397,3 @@ private void showFrequentCustomers() {
         });
     }
 }
-
