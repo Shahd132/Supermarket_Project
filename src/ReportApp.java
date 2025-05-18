@@ -241,133 +241,133 @@ public class ReportApp extends JFrame {
         executeReportQuery(query, "Sales by Product Category (Electronics vs Food)");
     }
 
-    private void showFrequentCustomers() {
-        String query = "SELECT " +
-                "c.CID AS [Customer ID], " +
-                "c.CName AS [Customer Name], " +
-                "COUNT(o.ORDERID) AS [Number of Orders], " +
-                "ISNULL(c.[DiscountVoucher], 0) AS [Discount Voucher (EGP)] " +
-                "FROM CUSTOMER c " +
-                "JOIN [ORDER] o ON c.CID = o.CID " +
-                "GROUP BY c.CID, c.CName, c.[DiscountVoucher] " +
-                "HAVING COUNT(o.ORDERID) >= 3 " +
-                "ORDER BY [Number of Orders] DESC";
+   private void showFrequentCustomers() {
+    String query = "SELECT " +
+            "c.CID AS [Customer ID], " +
+            "c.CName AS [Customer Name], " +
+            "COUNT(o.ORDERID) AS [Number of Orders], " +
+            "ISNULL(c.[DiscountVoucher], '') AS [Discount Voucher] " +
+            "FROM CUSTOMER c " +
+            "JOIN [ORDER] o ON c.CID = o.CID " +
+            "GROUP BY c.CID, c.CName, c.[DiscountVoucher] " +
+            "HAVING COUNT(o.ORDERID) >= 3 " +
+            "ORDER BY [Number of Orders] DESC";
 
-        try (Connection conn = DriverManager.getConnection(
-                "jdbc:sqlserver://localhost:1433;instanceName=MSSQLSERVER1;databaseName=Supermarket;integratedSecurity=true;encrypt=true;trustServerCertificate=true;");
-                Statement stmt = conn.createStatement();
-                ResultSet rs = stmt.executeQuery(query)) {
+    try (Connection conn = DriverManager.getConnection(
+            "jdbc:sqlserver://localhost:1433;instanceName=MSSQLSERVER1;databaseName=Supermarket;integratedSecurity=true;encrypt=true;trustServerCertificate=true;");
+         Statement stmt = conn.createStatement();
+         ResultSet rs = stmt.executeQuery(query)) {
 
-            JFrame frame = new JFrame("Frequent Customers (3+ Orders)");
-            frame.setSize(800, 700);
-            frame.setLocationRelativeTo(null);
-            frame.setLayout(new BorderLayout());
+        JFrame frame = new JFrame("Frequent Customers (3+ Orders)");
+        frame.setSize(800, 700);
+        frame.setLocationRelativeTo(null);
+        frame.setLayout(new BorderLayout());
 
-            ResultSetMetaData meta = rs.getMetaData();
-            int columnCount = meta.getColumnCount();
-            String[] columnNames = new String[columnCount];
-            for (int i = 1; i <= columnCount; i++) {
-                columnNames[i - 1] = meta.getColumnLabel(i);
-            }
-
-            java.util.List<Object[]> data = new java.util.ArrayList<>();
-            while (rs.next()) {
-                Object[] row = new Object[columnCount];
-                for (int i = 1; i <= columnCount; i++) {
-                    row[i - 1] = rs.getObject(i);
-                }
-                data.add(row);
-            }
-
-            Object[][] rowData = new Object[data.size()][columnCount];
-            for (int i = 0; i < data.size(); i++) {
-                rowData[i] = data.get(i);
-            }
-
-            JTable table = new JTable(rowData, columnNames) {
-                public boolean isCellEditable(int row, int column) {
-                    return false;
-                }
-            };
-
-            table.setFont(new Font("Arial", Font.PLAIN, 16));
-            table.setRowHeight(50);
-            DefaultTableCellRenderer centerRenderer = new DefaultTableCellRenderer();
-            centerRenderer.setHorizontalAlignment(SwingConstants.CENTER);
-            for (int i = 0; i < columnCount; i++) {
-                table.getColumnModel().getColumn(i).setCellRenderer(centerRenderer);
-            }
-
-            JTableHeader header = table.getTableHeader();
-            header.setBackground(new Color(0, 102, 0));
-            header.setForeground(Color.WHITE);
-            header.setFont(new Font("Arial", Font.BOLD, 18));
-
-            JScrollPane scrollPane = new JScrollPane(table);
-            frame.add(scrollPane, BorderLayout.CENTER);
-
-            JPanel bottomPanel = new JPanel();
-            bottomPanel.setBackground(new Color(245, 255, 250));
-
-            JButton discountButton = new JButton("Set Discount Voucher");
-            discountButton.setPreferredSize(new Dimension(200, 40));
-            discountButton.setBackground(new Color(0, 102, 0));
-            discountButton.setForeground(Color.WHITE);
-            discountButton.setFont(new Font("Arial", Font.BOLD, 16));
-            discountButton.setFocusPainted(false);
-
-            discountButton.addActionListener(e -> {
-                int selectedRow = table.getSelectedRow();
-                if (selectedRow == -1) {
-                    JOptionPane.showMessageDialog(frame, "Please select a customer row first.");
-                    return;
-                }
-
-                String cid = table.getValueAt(selectedRow, 0).toString();
-                String cname = table.getValueAt(selectedRow, 1).toString();
-                String discount = JOptionPane.showInputDialog(frame, "Enter discount for " + cname + ":");
-
-                if (discount != null && !discount.isEmpty()) {
-                    try (Connection updateConn = DriverManager.getConnection(
-                            "jdbc:sqlserver://localhost:1433;instanceName=MSSQLSERVER1;databaseName=Supermarket;integratedSecurity=true;encrypt=true;trustServerCertificate=true;");
-                            PreparedStatement updateStmt = updateConn.prepareStatement(
-                                    "UPDATE CUSTOMER SET [DiscountVoucher] = ? WHERE CID = ?")) {
-
-                        updateStmt.setBigDecimal(1, new java.math.BigDecimal(discount));
-                        updateStmt.setInt(2, Integer.parseInt(cid));
-
-                        int rows = updateStmt.executeUpdate();
-                        if (rows > 0) {
-                            JOptionPane.showMessageDialog(frame, "Discount updated for " + cname);
-                            table.setValueAt(discount, selectedRow, 3);
-                        } else {
-                            JOptionPane.showMessageDialog(frame, "Failed to update discount.");
-                        }
-
-                    } catch (Exception ex) {
-                        showErrorDialog(ex.getMessage());
-                    }
-                }
-            });
-
-            JButton backButton = new JButton("Back");
-            backButton.setPreferredSize(new Dimension(100, 40));
-            backButton.setBackground(new Color(0, 102, 0));
-            backButton.setForeground(Color.WHITE);
-            backButton.setFont(new Font("Arial", Font.BOLD, 16));
-            backButton.setFocusPainted(false);
-            backButton.addActionListener(e -> frame.dispose());
-
-            bottomPanel.add(discountButton);
-            bottomPanel.add(backButton);
-
-            frame.add(bottomPanel, BorderLayout.SOUTH);
-            frame.setVisible(true);
-
-        } catch (SQLException e) {
-            showErrorDialog(e.getMessage());
+        ResultSetMetaData meta = rs.getMetaData();
+        int columnCount = meta.getColumnCount();
+        String[] columnNames = new String[columnCount];
+        for (int i = 1; i <= columnCount; i++) {
+            columnNames[i - 1] = meta.getColumnLabel(i);
         }
+
+        java.util.List<Object[]> data = new java.util.ArrayList<>();
+        while (rs.next()) {
+            Object[] row = new Object[columnCount];
+            for (int i = 1; i <= columnCount; i++) {
+                row[i - 1] = rs.getObject(i);
+            }
+            data.add(row);
+        }
+
+        Object[][] rowData = new Object[data.size()][columnCount];
+        for (int i = 0; i < data.size(); i++) {
+            rowData[i] = data.get(i);
+        }
+
+        JTable table = new JTable(rowData, columnNames) {
+            public boolean isCellEditable(int row, int column) {
+                return false;
+            }
+        };
+
+        table.setFont(new Font("Arial", Font.PLAIN, 16));
+        table.setRowHeight(50);
+        DefaultTableCellRenderer centerRenderer = new DefaultTableCellRenderer();
+        centerRenderer.setHorizontalAlignment(SwingConstants.CENTER);
+        for (int i = 0; i < columnCount; i++) {
+            table.getColumnModel().getColumn(i).setCellRenderer(centerRenderer);
+        }
+
+        JTableHeader header = table.getTableHeader();
+        header.setBackground(new Color(0, 102, 0));
+        header.setForeground(Color.WHITE);
+        header.setFont(new Font("Arial", Font.BOLD, 18));
+
+        JScrollPane scrollPane = new JScrollPane(table);
+        frame.add(scrollPane, BorderLayout.CENTER);
+
+        JPanel bottomPanel = new JPanel();
+        bottomPanel.setBackground(new Color(245, 255, 250));
+
+        JButton discountButton = new JButton("Set Discount Voucher");
+        discountButton.setPreferredSize(new Dimension(200, 40));
+        discountButton.setBackground(new Color(0, 102, 0));
+        discountButton.setForeground(Color.WHITE);
+        discountButton.setFont(new Font("Arial", Font.BOLD, 16));
+        discountButton.setFocusPainted(false);
+
+        discountButton.addActionListener(e -> {
+            int selectedRow = table.getSelectedRow();
+            if (selectedRow == -1) {
+                JOptionPane.showMessageDialog(frame, "Please select a customer row first.");
+                return;
+            }
+
+            String cid = table.getValueAt(selectedRow, 0).toString();
+            String cname = table.getValueAt(selectedRow, 1).toString();
+            String discount = JOptionPane.showInputDialog(frame, "Enter discount code for " + cname + ":");
+
+            if (discount != null && !discount.isEmpty()) {
+                try (Connection updateConn = DriverManager.getConnection(
+                        "jdbc:sqlserver://localhost:1433;instanceName=MSSQLSERVER1;databaseName=Supermarket;integratedSecurity=true;encrypt=true;trustServerCertificate=true;");
+                     PreparedStatement updateStmt = updateConn.prepareStatement(
+                             "UPDATE CUSTOMER SET [DiscountVoucher] = ? WHERE CID = ?")) {
+
+                    updateStmt.setString(1, discount);
+                    updateStmt.setInt(2, Integer.parseInt(cid));
+
+                    int rows = updateStmt.executeUpdate();
+                    if (rows > 0) {
+                        JOptionPane.showMessageDialog(frame, "Discount code updated for " + cname);
+                        table.setValueAt(discount, selectedRow, 3);
+                    } else {
+                        JOptionPane.showMessageDialog(frame, "Failed to update discount.");
+                    }
+
+                } catch (Exception ex) {
+                    showErrorDialog(ex.getMessage());
+                }
+            }
+        });
+
+        JButton backButton = new JButton("Back");
+        backButton.setPreferredSize(new Dimension(100, 40));
+        backButton.setBackground(new Color(0, 102, 0));
+        backButton.setForeground(Color.WHITE);
+        backButton.setFont(new Font("Arial", Font.BOLD, 16));
+        backButton.setFocusPainted(false);
+        backButton.addActionListener(e -> frame.dispose());
+
+        bottomPanel.add(discountButton);
+        bottomPanel.add(backButton);
+
+        frame.add(bottomPanel, BorderLayout.SOUTH);
+        frame.setVisible(true);
+
+    } catch (SQLException e) {
+        showErrorDialog(e.getMessage());
     }
+}
 
     // f
     private void showProductCustomerStats() {
